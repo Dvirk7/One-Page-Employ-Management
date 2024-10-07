@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task & Attendance Management</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            background-color: #006d77;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar .logo {
+            display: flex;
+            align-items: center;
+        }
+        .navbar .logo img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .navbar .logo h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .navbar .profile {
+            display: flex;
+            align-items: center;
+        }
+        .navbar .profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .container {
+            width: 50%;
+            margin: 50px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #006d77;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        input, select, button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #83c5be;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #2a9d8f;
+        }
+
+        .task-list, .attendance-list {
+            margin-top: 30px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 10px;
+            background-color: #edf6f9;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .remove-btn {
+            background-color: #e63946;
+            color: white;
+            border: none;
+            width: 120px;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background-color: #d62828;
+            transform: scale(1.05); 
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            background-color: #f0f8ff;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="logo">
+        <img src="https://static.vecteezy.com/system/resources/thumbnails/008/214/517/small_2x/abstract-geometric-logo-or-infinity-line-logo-for-your-company-free-vector.jpg" alt="Logo">
+        <h1>Company Name</h1>
+    </div>
+    <div class="profile">
+        <span>Admin</span>
+        <img src="https://media.istockphoto.com/id/1386179512/photo/computer-hacker-stealing-data-from-a-laptop.jpg?s=612x612&w=0&k=20&c=uaPBMvpmnqgulWYWnHqgEqec3OWwwCjv7k9D_VAeDV0=" alt="Profile Picture">
+    </div>
+</div>
+
+<div class="container">
+    <h2>Task Assignment</h2>
+    <div class="form-group">
+        <input type="text" id="task" placeholder="Enter Task" />
+        <select id="employeeSelect"></select>
+        <button onclick="addTask()">Assign Task</button>
+    </div>
+
+    <h2>Mark Attendance</h2>
+    <div class="form-group">
+        <select id="attendanceSelect"></select>
+        <input type="date" id="attendanceDate">
+        <button onclick="markAttendance()">Mark Present</button>
+    </div>
+
+    <div class="task-list">
+        <h2>Assigned Tasks</h2>
+        <ul id="taskList"></ul>
+    </div>
+
+    <div class="attendance-list">
+        <h2>Attendance</h2>
+        <ul id="attendanceList"></ul>
+    </div>
+
+    <!-- Canvas for Chart.js -->
+    <div style="margin-top: 30px;">
+        <h2> Distribution Chart</h2>
+        <canvas id="myChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<footer>
+    &copy; 2024 Company Name - All Rights Reserved
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const employees = JSON.parse(localStorage.getItem('employees')) || [
+        { id: 1, name: 'dill', tasks: [], attendance: [] },
+        { id: 2, name: 'harsh', tasks: [], attendance: [] },
+        { id: 3, name: 'eklavya', tasks: [], attendance: [] },
+        { id: 4, name: 'livyansh', tasks: [], attendance: []},
+        { id: 5, name: 'harshit', tasks: [], attendance: []},
+    ];
+
+    const taskListElement = document.getElementById('taskList');
+    const attendanceListElement = document.getElementById('attendanceList');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const attendanceSelect = document.getElementById('attendanceSelect');
+    const ctx = document.getElementById('myChart').getContext('2d');
+
+    let myChart; // Declare chart globally
+
+    function populateEmployees() {
+        employeeSelect.innerHTML = '';
+        attendanceSelect.innerHTML = '';
+        employees.forEach(employee => {
+            const option = document.createElement('option');
+            option.value = employee.id;
+            option.textContent = employee.name;
+            employeeSelect.appendChild(option);
+
+            const attendanceOption = document.createElement('option');
+            attendanceOption.value = employee.id;
+            attendanceOption.textContent = employee.name;
+            attendanceSelect.appendChild(attendanceOption);
+        });
+    }
+
+    function addTask() {
+        const task = document.getElementById('task').value;
+        const employeeId = parseInt(employeeSelect.value);
+
+        if (task && employeeId) {
+            const employee = employees.find(emp => emp.id === employeeId);
+            employee.tasks.push(task);
+            document.getElementById('task').value = '';
+            saveEmployees();
+            renderTasks();
+            renderChart(); // Update chart after adding a task
+        }
+    }
+
+    function removeTask(employeeId, taskIndex) {
+        const employee = employees.find(emp => emp.id === employeeId);
+        employee.tasks.splice(taskIndex, 1);
+        saveEmployees();
+        renderTasks();
+        renderChart(); // Update chart after removing a task
+    }
+
+    function renderTasks() {
+        taskListElement.innerHTML = '';
+        employees.forEach(employee => {
+            if (employee.tasks.length > 0) {
+                employee.tasks.forEach((task, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${task} (Assigned to: ${employee.name}) <button class="remove-btn" onclick="removeTask(${employee.id}, ${index})">Remove</button>`;
+                    taskListElement.appendChild(li);
+                });
+            }
+        });
+    }
+
+    function markAttendance() {
+        const employeeId = parseInt(attendanceSelect.value);
+        const date = document.getElementById('attendanceDate').value;
+
+        if (employeeId && date) {
+            const employee = employees.find(emp => emp.id === employeeId);
+            employee.attendance.push(date);
+            saveEmployees();
+            renderAttendance();
+        }
+    }
+
+    function renderAttendance() {
+        attendanceListElement.innerHTML = '';
+        employees.forEach(employee => {
+            const li = document.createElement('li');
+            li.innerHTML = `${employee.name} has been present on: ${employee.attendance.join(', ') || 'No attendance marked'}`;
+            attendanceListElement.appendChild(li);
+        });
+    }
+
+    function saveEmployees() {
+        localStorage.setItem('employees', JSON.stringify(employees));
+    }
+
+    function renderChart() {
+        const taskCounts = employees.map(employee => employee.tasks.length);
+
+        if (myChart) {
+            // Update existing chart
+            myChart.data.datasets[0].data = taskCounts;
+            myChart.update(); // Update chart
+        } else {
+            // Create the chart for the first time
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: employees.map(employee => employee.name),
+                    datasets: [{
+                        label: '# of Tasks',
+                        data: taskCounts,
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Initialize employees and tasks on page load
+    window.onload = function() {
+        populateEmployees();
+        renderTasks();
+        renderAttendance();
+        renderChart();
+    };
+</script>
+
+</body>
+</html>
